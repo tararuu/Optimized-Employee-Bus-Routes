@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <meta charset="utf-8" />
+    <title>Waypoints in directions</title>
+    <style>
+        #right-panel {
+            font-family: "Roboto", "sans-serif";
+            line-height: 30px;
+            padding-left: 10px;
+        }
+        #right-panel select, #right-panel input {
+            font-size: 15px;
+        }
+        #right-panel select {
+            width: 100%;
+        }
+        #right-panel i {
+            font-size: 12px;
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        #map {
+            height: 100%;
+            float: left;
+            width: 70%;
+        }
+        #right-panel {
+            margin: 20px;
+            border-width: 2px;
+            width: 20%;
+            float: left;
+            text-align: left;
+            padding-top: 20px;
+        }
+        #directions-panel {
+            margin-top: 20px;
+            background-color: #ffee77;
+            padding: 10px;
+        }
+        #end {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+<div id="map"></div>
+<div id="right-panel">
+    <div>
+        <b>Select Route File:</b>
+        <select id="fileSelect">
+            <option value="file1">Route File 1</option>
+            <option value="file2">Route File 2</option>
+            <option value="file3">Route File 3</option>
+            <option value="file4">Route File 4</option>
+            <option value="file5">Route File 5</option>
+        </select>
+        
+        <input type="submit" id="submit" />
+
+
+        <br />
+        <b style = " opacity:0 ">Start:</b>
+        <select style = " opacity:0 " id="start"></select>
+        <br />
+        <b style="opacity:0">Waypoints:</b> <br />
+        <i style="opacity:0">(Ctrl-Click for multiple selection)</i> <br />
+        <select style="opacity:0" multiple id="waypoints"></select>
+        <br />
+        <b style="opacity:0">End:</b>
+        <select style="opacity:0" id="end"></select>
+        <br />
+    </div>
+    <div id="directions-panel"></div>
+</div>
+<script>
+    const files = {
+        file1: `
+        Route for Cluster 0:
+        Start  18.791448  74.293129
+        N0  18.7550178  74.2448489
+        N1  18.756681  74.249877
+        N2  18.7826399  74.2956875
+        N4  18.7826399  74.2956875
+        N6  18.8249767  74.3775524
+        N8  18.8249767  74.3775524
+        N9  18.8249767  74.3775524
+        N10  18.8368405  74.39759880000001
+        N11  18.8242746  74.36304570000001
+        N12  18.8242746  74.36304570000001
+        N13  18.8088168  74.31475449999999
+        N14  18.7550178  74.2448489
+        N17  18.7550178  74.2448489
+        N18  18.7550178  74.2448489
+        N19  18.7550178  74.2448489
+        N20  18.7550178  74.2448489
+        N21  18.7550178  74.2448489
+        N22  18.7550178  74.2448489
+        N23  18.7550178  74.2448489
+        End  18.791448  74.293129        
+        `,
+        file2: `
+        Route for Cluster 1:
+        Start  18.791448  74.293129
+        N0  18.6320627  73.84679779999999
+        N1  18.6591749  73.8266013
+        N2  18.6793699  73.8491808
+        N4  18.6793699  73.8491808
+        N6  18.7374043  73.9565551
+        N7  18.7477477  73.8691048
+        N8  18.7632075  73.8613203
+        N9  18.7632075  73.8613203
+        N24  18.7632075  73.8613203
+        N25  18.7632075  73.8613203
+        N26  18.7632075  73.8613203
+        N27  18.7553642  73.85906419999999
+        N28  18.6744528  73.81396889999999
+        N29  18.6504611  73.8096196
+        N30  18.6297811  73.7997094
+        N31  18.6320627  73.84679779999999
+        N32  18.6320627  73.84679779999999
+        N33  18.6320627  73.84679779999999
+        End  18.791448  74.293129        
+        `,
+        file3: `
+        Route for Cluster 2:
+        Start  18.791448  74.293129
+        N0  19.1025653  74.7379119
+        N1  19.0948287  74.74797889999999
+        N2  19.0948287  74.74797889999999
+        N3  19.0948287  74.74797889999999
+        N4  19.0948287  74.74797889999999
+        N5  19.0948287  74.74797889999999
+        N6  19.083785  74.73348849999999
+        N7  19.097758  74.7325015
+        N8  19.1503725  74.6927354
+        N9  19.1503725  74.6927354
+        N10  19.1025653  74.7379119
+        End  18.791448  74.293129        
+        `,
+        file4: `
+        Route for Cluster 3:
+        Start  18.791448  74.293129
+        N0  18.508934  73.92591019999999
+        N1  18.5330323  73.933003
+        N2  18.5330323  73.933003
+        N3  18.5330323  73.933003
+        N7  18.5323976  73.94406459999999
+        N8  18.5443337  73.9363495
+        N9  18.5443337  73.9363495
+        N14  18.5538241  73.9476689
+        N15  18.5538241  73.9476689
+        N16  18.5538241  73.9476689
+        N17  18.5836822  74.0026116
+        N18  18.5807719  73.9787063
+        N23  18.5807719  73.9787063
+        N24  18.5807719  73.9787063
+        N25  18.5756218  73.9586368
+        N26  18.5635511  73.9325552
+        N27  18.5529226  73.879711
+        N28  18.5529226  73.879711
+        N29  18.5529226  73.879711
+        N30  18.5018322  73.8635912
+        N31  18.4698714  73.85844639999999
+        N52  18.508934  73.92591019999999
+        N53  18.508934  73.92591019999999
+        N54  18.508934  73.92591019999999
+        End  18.791448  74.293129        
+        `,
+        file5: `
+        Route for Cluster 4:
+        Start  18.791448  74.293129
+        N0  18.6404915  74.0512177
+        N1  18.6457648  74.0605289
+        N2  18.6457648  74.0605289
+        N7  18.6712883  74.1014825
+        N8  18.6712883  74.1014825
+        N9  18.6712883  74.1014825
+        N18  18.6923691  74.1323125
+        N19  18.6923691  74.1323125
+        N20  18.6965962  74.1383097
+        N21  18.6965962  74.1383097
+        N22  18.6965962  74.1383097
+        N23  18.7627616  74.0965911
+        N24  18.7627616  74.0965911
+        N25  18.7336285  74.0123851
+        N27  18.6269789  74.0337557
+        N28  18.6269789  74.0337557
+        N30  18.6404915  74.0512177
+        N31  18.6404915  74.0512177
+        N32  18.6404915  74.0512177
+        End  18.791448  74.293129        
+        `,
+    };
+
+    function initMap() {
+        var directionsService = new google.maps.DirectionsService();
+        var directionsDisplay = new google.maps.DirectionsRenderer();
+        var map = new google.maps.Map(document.getElementById("map"), {
+            zoom: 10,
+            center: { lat: 18.791448, lng: 74.293129 },
+        });
+        directionsDisplay.setMap(map);
+
+        document.getElementById("submit").addEventListener("click", function () {
+            calculateAndDisplayRoute(directionsService, directionsDisplay);
+        });
+
+        document.getElementById("fileSelect").addEventListener("change", function () {
+            var selectedFile = document.getElementById("fileSelect").value;
+            localStorage.setItem("selectedFile", selectedFile);
+            window.location.reload();
+        });
+
+        var savedFile = localStorage.getItem("selectedFile") || "file1";
+        document.getElementById("fileSelect").value = savedFile;
+        loadFile(savedFile);
+    }
+
+    function loadFile(fileKey) {
+        var fileContent = files[fileKey];
+        var lines = fileContent.trim().split("\n");
+        var start = document.getElementById("start");
+        var end = document.getElementById("end");
+        var waypoints = document.getElementById("waypoints");
+
+        // Clear existing options
+        start.innerHTML = "";
+        end.innerHTML = "";
+        waypoints.innerHTML = "";
+
+        // Process each line to extract coordinates
+        lines.forEach(function (line) {
+            if (line.trim() === "") return; // Skip empty lines
+            var parts = line.trim().split(/\s+/);
+            if (parts.length < 3) return; // Skip invalid lines
+
+            var label = parts[0].trim();
+            var lat = parts[1].trim();
+            var lng = parts[2].trim();
+            var value = lat + "," + lng;
+            var text = label;
+
+            // Create option element
+            var option = document.createElement("option");
+            option.value = value;
+            option.textContent = text;
+
+            if (label === "Start") {
+                start.appendChild(option);
+            } else if (label === "End") {
+                end.appendChild(option);
+            } else {
+                option.selected = true; // Automatically select waypoints
+                waypoints.appendChild(option);
+            }
+        });
+    }
+
+    function calculateAndDisplayRoute(directionsService, directionsDisplay) {
+        var waypts = [];
+        var waypointSelect = document.getElementById("waypoints");
+        for (var i = 0; i < waypointSelect.length && waypts.length < 50; i++) { // Limit to 23 waypoints
+            var latlng = waypointSelect.options[i].value.split(",");
+            var lat = parseFloat(latlng[0]);
+            var lng = parseFloat(latlng[1]);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                var location = new google.maps.LatLng(lat, lng);
+                waypts.push({
+                    location: location,
+                    stopover: true,
+                });
+            }
+        }
+
+        var start = document.getElementById("start").value.split(",");
+        var end = document.getElementById("end").value.split(",");
+        var startLat = parseFloat(start[0]);
+        var startLng = parseFloat(start[1]);
+        var endLat = parseFloat(end[0]);
+        var endLng = parseFloat(end[1]);
+
+        if (isNaN(startLat) || isNaN(startLng) || isNaN(endLat) || isNaN(endLng)) {
+            console.error("Invalid start or end coordinates:", start, end);
+            alert("Invalid start or end coordinates.");
+            return;
+        }
+
+        var startLatLng = new google.maps.LatLng(startLat, startLng);
+        var endLatLng = new google.maps.LatLng(endLat, endLng);
+
+        var request = {
+            origin: startLatLng,
+            destination: endLatLng,
+            waypoints: waypts,
+            optimizeWaypoints: false,
+            travelMode: google.maps.DirectionsTravelMode.DRIVING,
+        };
+
+        directionsService.route(request, function (response, status) {
+            if (status === google.maps.DirectionsStatus.OK) {
+                directionsDisplay.setDirections(response);
+                var route = response.routes[0];
+                var summaryPanel = document.getElementById("directions-panel");
+                summaryPanel.innerHTML = "";
+                // For each route, display summary information.
+                /*for (var i = 0; i < route.legs.length; i++) {
+                    var routeSegment = i + 1;
+                    summaryPanel.innerHTML +=
+                        "<b>Route Segment: " + routeSegment + "</b><br />";
+                    summaryPanel.innerHTML += route.legs[i].start_address + " to ";
+                    summaryPanel.innerHTML += route.legs[i].end_address + "<br />";
+                    summaryPanel.innerHTML +=
+                        route.legs[i].distance.text + "<br /><br />";
+                }*/
+            } else {
+                console.error("Directions request failed due to " + status);
+                alert("Directions request failed due to " + status);
+            }
+        });
+    }
+
+    window.initMap = initMap;
+</script>
+<script
+    async
+    defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDpcmXmmcXX204nb32xXdtJ1iNOBorCyu0&callback=initMap"
+></script>
+</body>
+</html>
